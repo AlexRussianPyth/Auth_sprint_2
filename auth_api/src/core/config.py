@@ -55,11 +55,20 @@ class OauthClientSettings(MainSettings):
     yandex_api_base_url: str = Field('https://login.yandex.ru/info', env='YANDEX_API_BASE_URL')
 
 
+class SentrySettings(MainSettings):
+    dsn: str
+    traces_sample_rate: float = 1.0
+
+    class Config:
+        env_prefix = 'sentry_'
+
+
 redis_settings = RedisSettings()
 pg_settings = PostgresSettings()
 api_settings = ApiSettings()
 jaeger_settings = JaegerSettings()
 oauth_settings = OauthClientSettings()
+sentry_settings = SentrySettings()
 
 # Flask Configuration
 SECRET_KEY = api_settings.secret_key
