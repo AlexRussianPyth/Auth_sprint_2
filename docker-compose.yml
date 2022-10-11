@@ -22,17 +22,19 @@ services:
       - .env
     expose:
       - "8000"
+    volumes:
+      -  /tmp/logs/app/json:/var/log/app
     depends_on:
       - redis
       - db
 
   nginx:
     container_name: nginx-container
-    image: nginx:latest
+    image: nginx:stable
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./configs:/etc/nginx/conf.d:ro
-      - ./data:/data/:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - /tmp/logs/nginx/:/var/log/nginx/
     depends_on:
       - db
       - redis

@@ -1,4 +1,5 @@
 import click
+import sentry_sdk
 from apiflask import APIFlask
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
@@ -7,14 +8,16 @@ from flask_security.utils import hash_password
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from flask import request
+from sentry_sdk.integrations.flask import FlaskIntegration
 
 from src.api.v1.auth import auth_route
 from src.api.v1.oauth import oauth_route
 from src.api.v1.roles import roles_route
 from src.api.v1.users import users_route
-from src.core.config import api_settings
+from src.core.config import api_settings, sentry_settings
 from src.core.limiters import limiter
 from src.core.oauth import init_oauth
+from src.core.logger import logging
 from src.core.tracers import configure_tracer
 from src.db.pg_db import init_db, db
 from src.db.redis_db import redis_service
@@ -22,10 +25,19 @@ from src.models.models import User, Role
 from src.services.role import create_role_in_db, get_role_by_name
 from src.services.user import create_user_in_db, add_role_to_user, get_user
 
+sentry_sdk.init(
+    dsn=sentry_settings.dsn,
+    integrations=[
+        FlaskIntegration(),
+    ],
+    traces_sample_rate=sentry_settings.traces_sample_rate,
+)
+
 
 def create_app(config_path):
     app = APIFlask(__name__, docs_path='/', title='Authorization Service API', version='1.0')
     app.config.from_pyfile(config_path)
+    app.logger = logging.getLogger(__name__)
 
     init_db(app)
     SQLAlchemyInstrumentor().instrument(engine=db.engine)
@@ -64,7 +76,6 @@ def create_app(config_path):
     app.register_blueprint(auth_route, url_prefix=f'{api_v1}/auth')
     app.register_blueprint(users_route, url_prefix=f'{api_v1}/users')
     app.register_blueprint(oauth_route, url_prefix=f'{api_v1}/oauth')
-
     return app
 
 
